@@ -19,6 +19,7 @@ enum Registers
 
 uint16_t memory[UINT16_MAX];
 uint16_t registers[Registers::Registers_Count];
+bool isRunning = false;
 
 
 enum Operations 
@@ -52,12 +53,12 @@ enum Flags
 
 enum Trapcodes 
 {
-	GETC, // Get character from keyboard, not echoed from terminal
-	OUT, // Output character
-	PUTS, // Output word string
-	IN, // Get character form keyboard, echoed from terminal
-	PUTSP, // Output byte string
-	HALT, // Halt the programm
+	GETC = 0x20, // Get character from keyboard, not echoed from terminal
+	OUT = 0x21, // Output character
+	PUTS = 0x22, // Output word string
+	IN = 0x23, // Get character form keyboard, echoed from terminal
+	PUTSP = 0x24, // Output byte string
+	HALT = 0x25, // Halt the programm
 };
 
 
@@ -261,11 +262,116 @@ void opJsr(uint16_t instr)
 }
 
 
+void trapPuts() 
+{
+	uint16_t* c = memory + registers[Registers::R0];
+
+	while (*c) 
+	{
+		std::cout << (char)*c;
+		++c;
+	}
+
+	std::cout << std::flush;
+}
+
+
+void trapGetc() 
+{
+	char input;
+	std::cin >> input;
+
+	registers[Registers::R0] = (uint16_t)input;
+}
+
+
+void trapOut() 
+{
+	std::cout << (char)registers[Registers::R0] << std::flush;
+}
+
+
+void trapIn() 
+{
+	std::cout << "> ";
+	char input;
+	std::cin >> input;
+
+	registers[Registers::R0] = (uint16_t)input;
+}
+
+
+void trapPutsp() 
+{
+	uint16_t* c = memory + registers[Registers::R0];
+
+	while (*c) 
+	{
+		char first = (*c) & 0xff;
+		std::cout << first;
+
+		char second = (*c) >> 8;
+		if (second)
+			std::cout << second;
+
+		++c;
+	}
+
+	std::cout << std::flush;
+}
+
+
+void trapHalt() 
+{
+	std::cout << "> Stopped.\n";
+	isRunning = false;
+}
+
+
+void opTrap(uint16_t instr) 
+{
+	switch (instr & 0xff)
+	{
+	case Trapcodes::GETC:
+		trapGetc();
+		break;
+	case Trapcodes::OUT:
+		trapOut();
+		break;
+	case Trapcodes::PUTS:
+		trapPuts();
+		break;
+	case Trapcodes::IN:
+		trapIn();
+		break;
+	case Trapcodes::PUTSP:
+		trapPutsp();
+		break;
+	case Trapcodes::HALT:
+		trapHalt();
+		break;
+	default:
+		break;
+	}
+}
+
+
+void setup() 
+{
+	memory[0] = 61475;
+	memory[1] = 61475;
+	memory[2] = 61477;
+
+	isRunning = true;
+}
+
+
 int main() 
 {
-	std::cout << "Hello, world!\n";
+	std::cout << "The end is near!\n";
+
+	setup();
 	
-	bool isRunning = true;
 	while (isRunning)
 	{
 		uint16_t instr = readMemory(registers[Registers::PC]++);
@@ -311,6 +417,9 @@ int main()
 			break;
 		case Operations::STR:
 			opStr(instr);
+			break;
+		case Operations::TRAP:
+			opTrap(instr);
 			break;
 		case Operations::RES:
 		case Operations::RTI:
