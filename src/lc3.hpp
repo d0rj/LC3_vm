@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 
-#include "memory.hpp"
+#include "devices/memory.hpp"
 
 
 namespace lc3
