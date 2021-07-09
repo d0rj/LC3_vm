@@ -1,5 +1,7 @@
 #include <iostream>
 
+#include "lc3.hpp"
+
 
 enum Registers : uint16_t
 {
