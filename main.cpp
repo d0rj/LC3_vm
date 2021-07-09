@@ -1,7 +1,7 @@
 #include <iostream>
 
 
-enum Registers 
+enum Registers : uint16_t
 {
 	R0 = 0,
 	R1,
@@ -22,7 +22,7 @@ uint16_t registers[Registers::Registers_Count];
 bool isRunning = false;
 
 
-enum Operations 
+enum Operations : uint16_t
 {
 	BR, // Conditional Branch
 	ADD, // Add or Add Immediate
@@ -43,7 +43,7 @@ enum Operations
 };
 
 
-enum Flags 
+enum Flags : uint16_t
 {
 	POS = 1 << 0,
 	ZRO = 1 << 1,
@@ -51,7 +51,7 @@ enum Flags
 };
 
 
-enum Trapcodes 
+enum Trapcodes : uint16_t
 {
 	GETC = 0x20, // Get character from keyboard, not echoed from terminal
 	OUT = 0x21, // Output character
