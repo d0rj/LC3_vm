@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "lc3.hpp"
+#include "src/lc3.hpp"
 
 
 int main() 
