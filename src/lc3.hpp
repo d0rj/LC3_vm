@@ -77,44 +77,139 @@ namespace lc3
 		std::unique_ptr<IIODevice> io;
 
 		bool isRunning = false;
-		std::function<void(uint16_t)> trapHandler;
-		std::map<Operations, std::function<void(uint16_t)>> handlers;
+		
+		const std::map<Operations, std::function<void(uint16_t)>> handlers = {
+			{Operations::ADD, [&](uint16_t instr) {
+				uint16_t dr = (instr >> 9) & 0b111;
+				uint16_t sr1 = (instr >> 6) & 0b111;
+				uint16_t sr2 = instr & 0b111;
 
+				uint16_t second = registers[sr2];
+				uint16_t immediateFlag = (instr >> 5) & 0b1;
+				if (immediateFlag) {
+					uint16_t imm5 = instr & 0b11111;
+					second = signExtend(imm5, 5);
+				}
 
-		void updateFlags(uint16_t r0) 
-		{
-			ConditionFlags updated = ConditionFlags::POS;
+				registers[dr] = registers[sr1] + second;
+				updateFlags(dr);
+			}},
+			{Operations::AND, [&](uint16_t instr) {
+				uint16_t dr = (instr >> 9) & 0b111;
+				uint16_t sr1 = (instr >> 6) & 0b111;
+				uint16_t sr2 = instr & 0b111;
 
-			if (registers[r0] >> 15 == 1)
-				updated = ConditionFlags::NEG;
-			else if (registers[r0] == 0)
-				updated = ConditionFlags::ZRO;
+				uint16_t second = registers[sr2];
+				uint16_t immediateFlag = (instr >> 5) & 0b1;
+				if (immediateFlag) {
+					uint16_t imm5 = instr & 0b11111;
+					second = signExtend(imm5, 5);
+				}
 
-			registers[Registers::COND] = updated;
-		}
+				registers[dr] = registers[sr1] & second;
+				updateFlags(dr);
+			}},
+			{Operations::NOT, [&](uint16_t instr) {
+				uint16_t dr = (instr >> 9) & 0b111;
+				uint16_t sr1 = (instr >> 6) & 0b111;
 
+				registers[dr] = ~registers[sr1];
+				updateFlags(dr);
+			}},
+			{Operations::LD, [&](uint16_t instr) {
+				uint16_t dr = (instr >> 9) & 0b111;
+				uint16_t pcOffset = instr & 0x1ff;
 
-		uint16_t signExtend(uint16_t x, int bit_count)
-		{
-			if ((x >> (bit_count - 1)) & 1)
-				x |= (0xFFFF << bit_count);
-			
-			return x;
-		}
+				uint16_t addr = registers[Registers::PC] + signExtend(pcOffset, 9);
 
+				registers[dr] = memory->read(addr);
+				updateFlags(dr);
+			}},
+			{Operations::LDI, [&](uint16_t instr) {
+				uint16_t dr = (instr >> 9) & 0b111;
+				uint16_t pcOffset = instr & 0x1ff;
 
-		void error(std::string message) 
-		{
-			io->errorOutputChars(std::format("Error: {}\n", message));
-			isRunning = false;
-			abort();
-		}
+				uint16_t addr = registers[Registers::PC] + signExtend(pcOffset, 9);
 
+				registers[dr] = memory->read(memory->read(addr));
+				updateFlags(dr);
+			}},
+			{Operations::LDR, [&](uint16_t instr) {
+				uint16_t dr = (instr >> 9) & 0b111;
+				uint16_t br = (instr >> 6) & 0b111;
+				uint16_t offset = instr & 0b111111;
 
-		// Operations implementation setup
-		void init()
-		{
-			trapHandler = [&](uint16_t instr) {
+				uint16_t addr = registers[br] + signExtend(offset, 6);
+
+				registers[dr] = memory->read(addr);
+				updateFlags(dr);
+			}},
+			{Operations::LEA, [&](uint16_t instr) {
+				uint16_t dr = (instr >> 9) & 0b111;
+				uint16_t pcOffset9 = instr & 0x1ff;
+
+				uint16_t addr = registers[Registers::PC] + signExtend(pcOffset9, 9);
+
+				registers[dr] = addr;
+				updateFlags(dr);
+			}},
+			{Operations::ST, [&](uint16_t instr) {
+				uint16_t sr = (instr >> 9) & 0b111;
+				uint16_t pcOffset = instr & 0x1ff;
+
+				uint16_t addr = registers[Registers::PC] + signExtend(pcOffset, 9);
+
+				uint16_t value = registers[sr];
+				memory->write(addr, value);
+			}},
+			{Operations::STI, [&](uint16_t instr) {
+				uint16_t sr = (instr >> 9) & 0b111;
+				uint16_t pcOffset = instr & 0x1ff;
+
+				uint16_t addr = registers[Registers::PC] + signExtend(pcOffset, 9);
+
+				uint16_t value = registers[sr];
+				memory->write(memory->read(addr), value);
+			}},
+			{Operations::STR, [&](uint16_t instr) {
+				uint16_t sr = (instr >> 9) & 0b111;
+				uint16_t br = (instr >> 6) & 0b111;
+				uint16_t offset = instr & 0b111111;
+
+				uint16_t addr = registers[br] + signExtend(offset, 6);
+
+				memory->write(addr, registers[sr]);
+			}},
+			{Operations::BR, [&](uint16_t instr) {
+				uint16_t cond = (instr >> 9) & 0b111;
+				uint16_t offset = instr & 0x1ff;
+
+				if (cond & registers[Registers::COND])
+					registers[Registers::PC] += signExtend(offset, 9);
+			}},
+			{Operations::JMP, [&](uint16_t instr) {
+				uint16_t r =  (instr >> 6) & 0b111;
+
+				registers[Registers::PC] = registers[r];
+			}},
+			{Operations::JSR, [&](uint16_t instr) {
+				registers[Registers::R7] = registers[Registers::PC];
+				uint16_t f = (instr >> 11) & 1;
+
+				if (f) { // jsr 
+					uint16_t pcOffset = instr & 0x7ff;
+					registers[Registers::PC] += signExtend(pcOffset, 11);
+				}
+				else // jssr
+					registers[Registers::PC] = (instr >> 6) & 0b111;
+			}},
+			{Operations::RES, [&](uint16_t instr) {
+				error("Reserved command " + std::to_string(instr));
+			}},
+			{Operations::RTI, [&](uint16_t instr) {
+				error("Reserved command " + std::to_string(instr));
+			}},
+			{Operations::TRAP, [&](uint16_t instr) {
 				static std::map<Trapcodes, std::function<void()>> variants;
 
 				variants[Trapcodes::GETC] = [&]() {
@@ -179,151 +274,37 @@ namespace lc3
 					key->second();
 				else
 					error("Unknown TRAP subinstruction " + std::to_string(instr & 0xff));
-			};
-			handlers[Operations::TRAP] = trapHandler;
+			}}
+		};
 
-			handlers[Operations::ADD] = [&](uint16_t instr) {
-				uint16_t dr = (instr >> 9) & 0b111;
-				uint16_t sr1 = (instr >> 6) & 0b111;
-				uint16_t sr2 = instr & 0b111;
 
-				uint16_t second = registers[sr2];
-				uint16_t immediateFlag = (instr >> 5) & 0b1;
-				if (immediateFlag) {
-					uint16_t imm5 = instr & 0b11111;
-					second = signExtend(imm5, 5);
-				}
+		void updateFlags(uint16_t r0) 
+		{
+			ConditionFlags updated = ConditionFlags::POS;
 
-				registers[dr] = registers[sr1] + second;
-				updateFlags(dr);
-			};
+			if (registers[r0] >> 15 == 1)
+				updated = ConditionFlags::NEG;
+			else if (registers[r0] == 0)
+				updated = ConditionFlags::ZRO;
 
-			handlers[Operations::AND] = [&](uint16_t instr) {
-				uint16_t dr = (instr >> 9) & 0b111;
-				uint16_t sr1 = (instr >> 6) & 0b111;
-				uint16_t sr2 = instr & 0b111;
+			registers[Registers::COND] = updated;
+		}
 
-				uint16_t second = registers[sr2];
-				uint16_t immediateFlag = (instr >> 5) & 0b1;
-				if (immediateFlag) {
-					uint16_t imm5 = instr & 0b11111;
-					second = signExtend(imm5, 5);
-				}
 
-				registers[dr] = registers[sr1] & second;
-				updateFlags(dr);
-			};
+		uint16_t signExtend(uint16_t x, int bit_count)
+		{
+			if ((x >> (bit_count - 1)) & 1)
+				x |= (0xFFFF << bit_count);
+			
+			return x;
+		}
 
-			handlers[Operations::NOT] = [&](uint16_t instr) {
-				uint16_t dr = (instr >> 9) & 0b111;
-				uint16_t sr1 = (instr >> 6) & 0b111;
 
-				registers[dr] = ~registers[sr1];
-				updateFlags(dr);
-			};
-
-			handlers[Operations::LD] = [&](uint16_t instr) {
-				uint16_t dr = (instr >> 9) & 0b111;
-				uint16_t pcOffset = instr & 0x1ff;
-
-				uint16_t addr = registers[Registers::PC] + signExtend(pcOffset, 9);
-
-				registers[dr] = memory->read(addr);
-				updateFlags(dr);
-			};
-
-			handlers[Operations::LDI] = [&](uint16_t instr) {
-				uint16_t dr = (instr >> 9) & 0b111;
-				uint16_t pcOffset = instr & 0x1ff;
-
-				uint16_t addr = registers[Registers::PC] + signExtend(pcOffset, 9);
-
-				registers[dr] = memory->read(memory->read(addr));
-				updateFlags(dr);
-			};
-
-			handlers[Operations::LDR] = [&](uint16_t instr) {
-				uint16_t dr = (instr >> 9) & 0b111;
-				uint16_t br = (instr >> 6) & 0b111;
-				uint16_t offset = instr & 0b111111;
-
-				uint16_t addr = registers[br] + signExtend(offset, 6);
-
-				registers[dr] = memory->read(addr);
-				updateFlags(dr);
-			};
-
-			handlers[Operations::LEA] = [&](uint16_t instr) {
-				uint16_t dr = (instr >> 9) & 0b111;
-				uint16_t pcOffset9 = instr & 0x1ff;
-
-				uint16_t addr = registers[Registers::PC] + signExtend(pcOffset9, 9);
-
-				registers[dr] = addr;
-				updateFlags(dr);
-			};
-
-			handlers[Operations::ST] = [&](uint16_t instr) {
-				uint16_t sr = (instr >> 9) & 0b111;
-				uint16_t pcOffset = instr & 0x1ff;
-
-				uint16_t addr = registers[Registers::PC] + signExtend(pcOffset, 9);
-
-				uint16_t value = registers[sr];
-				memory->write(addr, value);
-			};
-
-			handlers[Operations::STI] = [&](uint16_t instr) {
-				uint16_t sr = (instr >> 9) & 0b111;
-				uint16_t pcOffset = instr & 0x1ff;
-
-				uint16_t addr = registers[Registers::PC] + signExtend(pcOffset, 9);
-
-				uint16_t value = registers[sr];
-				memory->write(memory->read(addr), value);
-			};
-
-			handlers[Operations::STR] = [&](uint16_t instr) {
-				uint16_t sr = (instr >> 9) & 0b111;
-				uint16_t br = (instr >> 6) & 0b111;
-				uint16_t offset = instr & 0b111111;
-
-				uint16_t addr = registers[br] + signExtend(offset, 6);
-
-				memory->write(addr, registers[sr]);
-			};
-
-			handlers[Operations::BR] = [&](uint16_t instr) {
-				uint16_t cond = (instr >> 9) & 0b111;
-				uint16_t offset = instr & 0x1ff;
-
-				if (cond & registers[Registers::COND])
-					registers[Registers::PC] += signExtend(offset, 9);
-			};
-
-			handlers[Operations::JMP] = [&](uint16_t instr) {
-				uint16_t r =  (instr >> 6) & 0b111;
-
-				registers[Registers::PC] = registers[r];
-			};
-
-			handlers[Operations::JSR] = [&](uint16_t instr) {
-				registers[Registers::R7] = registers[Registers::PC];
-				uint16_t f = (instr >> 11) & 1;
-
-				if (f) { // jsr 
-					uint16_t pcOffset = instr & 0x7ff;
-					registers[Registers::PC] += signExtend(pcOffset, 11);
-				}
-				else // jssr
-					registers[Registers::PC] = (instr >> 6) & 0b111;
-			};
-
-			std::function<void(uint16_t)> reservedCommandHandler = [&](uint16_t instr) {
-				error("Reserved command " + std::to_string(instr));
-			};
-			handlers[Operations::RES] = reservedCommandHandler;
-			handlers[Operations::RTI] = reservedCommandHandler;
+		void error(std::string message) 
+		{
+			io->errorOutputChars(std::format("Error: {}\n", message));
+			isRunning = false;
+			abort();
 		}
 
 
@@ -342,9 +323,7 @@ namespace lc3
 
 		void run()
 		{
-			io->outputChars("Initialization...\n");
-			init();
-			io->outputChars("Done.\nSetup...\n");
+			io->outputChars("Setup...\n");
 			setup();
 			io->outputChars("Done.\nRunning.\n");
 
