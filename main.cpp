@@ -8,13 +8,14 @@
 
 int main() 
 {
-	std::cout << "The end is near!\n";
+	auto memory = std::make_unique<lc3::Memory>();
+	auto io = std::make_unique<lc3::IODevice>();
 
-	lc3::LC3 machine(
-		std::make_unique<lc3::Memory>(),
-		std::make_unique<lc3::IODevice>()
+	lc3::LC3 cpu(
+		std::move(memory),
+		std::move(io)
 		);
-	machine.run();
+	cpu.run();
 
 	return 0;
 }
