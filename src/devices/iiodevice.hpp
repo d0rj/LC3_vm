@@ -15,5 +15,7 @@ namespace lc3
 		virtual void errorOutputChars(const char* str) const noexcept = 0;
 		virtual void errorOutputChars(std::string str) const noexcept { errorOutputChars(str.c_str()); }
 		virtual void flush() const noexcept = 0;
+
+		virtual ~IIODevice() { }
 	};
 }
