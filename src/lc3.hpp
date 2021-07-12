@@ -3,7 +3,7 @@
 #include <cinttypes>
 #include <functional>
 #include <map>
-#include <iostream>
+#include <format>
 #include <string>
 #include <memory>
 
@@ -74,6 +74,7 @@ namespace lc3
 	private:
 		uint16_t registers[Registers::Registers_Count];
 		std::unique_ptr<IMemory> memory;
+		std::unique_ptr<IIODevice> io;
 
 		bool isRunning = false;
 		std::function<void(uint16_t)> trapHandler;
@@ -104,7 +105,7 @@ namespace lc3
 
 		void error(std::string message) 
 		{
-			std::cerr << "Error: " << message << std::endl;
+			io->errorOutputChars(std::format("Error: {}\n", message));
 			isRunning = false;
 			abort();
 		}
@@ -117,14 +118,13 @@ namespace lc3
 				static std::map<Trapcodes, std::function<void()>> variants;
 
 				variants[Trapcodes::GETC] = [&]() {
-					char input;
-					std::cin >> input;
-
+					char input = io->inputChar();
 					registers[Registers::R0] = (uint16_t)input;
 				};
 
 				variants[Trapcodes::OUT] = [&]() {
-					std::cout << (char)registers[Registers::R0] << std::flush;
+					io->outputChar(registers[Registers::R0]);
+					io->flush();
 				};
 
 				variants[Trapcodes::PUTS] = [&]() {
@@ -133,19 +133,18 @@ namespace lc3
 
 					while (c) 
 					{
-						std::cout << (char)c;
+						io->outputChar(c);
 
 						++offset;
 						c = memory->read(registers[Registers::R0] + offset);
 					}
 
-					std::cout << std::flush;
+					io->flush();
 				};
 
 				variants[Trapcodes::IN] = [&]() {
-					std::cout << "> ";
-					char input;
-					std::cin >> input;
+					io->outputChars("> ");
+					char input = io->inputChar();
 
 					registers[Registers::R0] = (uint16_t)input;
 				};
@@ -156,21 +155,21 @@ namespace lc3
 
 					while (c)  {
 						char first = c & 0xff;
-						std::cout << first;
+						io->outputChar(first);
 
 						char second = c >> 8;
 						if (second)
-							std::cout << second;
+							io->outputChar(second);
 
 						++offset;
 						c = memory->read(registers[Registers::R0]);
 					}
 
-					std::cout << std::flush;
+					io->flush();
 				};
 
 				variants[Trapcodes::HALT] = [&]() {
-					std::cout << "> Stopped.\n";
+					io->outputChars("Stopped.\n");
 					isRunning = false;
 				};
 
@@ -337,17 +336,17 @@ namespace lc3
 			isRunning = true;
 		}
 	public:
-		LC3(std::unique_ptr<IMemory> mem)
-			: memory(std::move(mem)) {}
+		LC3(std::unique_ptr<IMemory> mem, std::unique_ptr<IIODevice> ioDevice)
+			: memory(std::move(mem)), io(std::move(ioDevice)) {}
 
 
 		void run()
 		{
-			std::cout << "Initialization...\n";
+			io->outputChars("Initialization...\n");
 			init();
-			std::cout << "Done.\nSetup...\n";
+			io->outputChars("Done.\nSetup...\n");
 			setup();
-			std::cout << "Done.\nRunning.\n";
+			io->outputChars("Done.\nRunning.\n");
 
 			while (isRunning) {
 				uint16_t instr = memory->read(registers[Registers::PC]++);
