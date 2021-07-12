@@ -151,8 +151,7 @@ namespace lc3
 					size_t offset = 0;
 					uint16_t c = memory->read(registers[Registers::R0]);
 
-					while (c) 
-					{
+					while (c)  {
 						char first = c & 0xff;
 						std::cout << first;
 
@@ -347,8 +346,7 @@ namespace lc3
 			setup();
 			std::cout << "Done.\nRunning.\n";
 
-			while (isRunning)
-			{
+			while (isRunning) {
 				uint16_t instr = memory->read(registers[Registers::PC]++);
 				uint16_t op = instr >> 12;
 
