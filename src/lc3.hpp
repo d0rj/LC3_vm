@@ -305,10 +305,6 @@ namespace lc3
 
 		void setup()
 		{
-			memory->write(0, 61475);
-			memory->write(1, 61475);
-			memory->write(2, 61477);
-
 			isRunning = true;
 		}
 	public:
