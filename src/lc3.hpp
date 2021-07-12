@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cinttypes>
 #include <functional>
 #include <map>
@@ -5,7 +7,8 @@
 #include <string>
 #include <memory>
 
-#include "devices/memory.hpp"
+#include "devices/imemory.hpp"
+#include "devices/iiodevice.hpp"
 
 
 namespace lc3
