@@ -21,6 +21,6 @@ namespace lc3
 		}
 
 
-		size_t size() const override { return UINT16_MAX; }
+		size_t size() const noexcept override { return UINT16_MAX; }
 	};
 }
