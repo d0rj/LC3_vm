@@ -77,7 +77,7 @@ namespace lc3
 		std::unique_ptr<IIODevice> io;
 
 		bool isRunning = false;
-		
+
 		const std::map<Operations, std::function<void(uint16_t)>> handlers = {
 			{Operations::ADD, [&](uint16_t instr) {
 				uint16_t dr = (instr >> 9) & 0b111;
@@ -210,65 +210,60 @@ namespace lc3
 				error("Reserved command " + std::to_string(instr));
 			}},
 			{Operations::TRAP, [&](uint16_t instr) {
-				static std::map<Trapcodes, std::function<void()>> variants;
+				static const std::map<Trapcodes, std::function<void()>> variants = {
+					{Trapcodes::GETC, [&]() {
+						char input = io->inputChar();
+						registers[Registers::R0] = (uint16_t)input;
+					}},
+					{Trapcodes::OUT, [&]() {
+						io->outputChar(registers[Registers::R0]);
+						io->flush();
+					}},
+					{Trapcodes::PUTS, [&]() {
+						size_t offset = 0;
+						uint16_t c = memory->read(registers[Registers::R0]);
 
-				variants[Trapcodes::GETC] = [&]() {
-					char input = io->inputChar();
-					registers[Registers::R0] = (uint16_t)input;
+						while (c) 
+						{
+							io->outputChar(c);
+
+							++offset;
+							c = memory->read(registers[Registers::R0] + offset);
+						}
+
+						io->flush();
+					}},
+					{Trapcodes::IN, [&]() {
+						io->outputChars("> ");
+						char input = io->inputChar();
+
+						registers[Registers::R0] = (uint16_t)input;
+					}},
+					{Trapcodes::PUTSP, [&]() {
+						size_t offset = 0;
+						uint16_t c = memory->read(registers[Registers::R0]);
+
+						while (c)  {
+							char first = c & 0xff;
+							io->outputChar(first);
+
+							char second = c >> 8;
+							if (second)
+								io->outputChar(second);
+
+							++offset;
+							c = memory->read(registers[Registers::R0]);
+						}
+
+						io->flush();
+					}},
+					{Trapcodes::HALT, [&]() {
+						io->outputChars("Stopped.\n");
+						isRunning = false;
+					}}
 				};
 
-				variants[Trapcodes::OUT] = [&]() {
-					io->outputChar(registers[Registers::R0]);
-					io->flush();
-				};
-
-				variants[Trapcodes::PUTS] = [&]() {
-					size_t offset = 0;
-					uint16_t c = memory->read(registers[Registers::R0]);
-
-					while (c) 
-					{
-						io->outputChar(c);
-
-						++offset;
-						c = memory->read(registers[Registers::R0] + offset);
-					}
-
-					io->flush();
-				};
-
-				variants[Trapcodes::IN] = [&]() {
-					io->outputChars("> ");
-					char input = io->inputChar();
-
-					registers[Registers::R0] = (uint16_t)input;
-				};
-
-				variants[Trapcodes::PUTSP] = [&]() {
-					size_t offset = 0;
-					uint16_t c = memory->read(registers[Registers::R0]);
-
-					while (c)  {
-						char first = c & 0xff;
-						io->outputChar(first);
-
-						char second = c >> 8;
-						if (second)
-							io->outputChar(second);
-
-						++offset;
-						c = memory->read(registers[Registers::R0]);
-					}
-
-					io->flush();
-				};
-
-				variants[Trapcodes::HALT] = [&]() {
-					io->outputChars("Stopped.\n");
-					isRunning = false;
-				};
-
-				std::map<Trapcodes, std::function<void()>>::iterator key = variants.find((Trapcodes)(instr & 0xff));
+				auto key = variants.find((Trapcodes)(instr & 0xff));
 
 				if (key != variants.end())
 					key->second();
