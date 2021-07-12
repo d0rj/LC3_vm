@@ -3,7 +3,7 @@
 
 namespace lc3
 {
-	class Memory : IMemory
+	class Memory : public IMemory
 	{
 	private:
 		uint16_t memory[UINT16_MAX];

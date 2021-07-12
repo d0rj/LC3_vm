@@ -3,6 +3,7 @@
 #include <map>
 #include <iostream>
 #include <string>
+#include <memory>
 
 #include "devices/memory.hpp"
 
@@ -69,7 +70,7 @@ namespace lc3
 	{
 	private:
 		uint16_t registers[Registers::Registers_Count];
-		Memory memory;
+		std::unique_ptr<IMemory> memory;
 
 		bool isRunning = false;
 		std::function<void(uint16_t)> trapHandler;
@@ -125,14 +126,14 @@ namespace lc3
 
 				variants[Trapcodes::PUTS] = [&]() {
 					size_t offset = 0;
-					uint16_t c = memory.read(registers[Registers::R0]);
+					uint16_t c = memory->read(registers[Registers::R0]);
 
 					while (c) 
 					{
 						std::cout << (char)c;
 
 						++offset;
-						c = memory.read(registers[Registers::R0] + offset);
+						c = memory->read(registers[Registers::R0] + offset);
 					}
 
 					std::cout << std::flush;
@@ -148,7 +149,7 @@ namespace lc3
 
 				variants[Trapcodes::PUTSP] = [&]() {
 					size_t offset = 0;
-					uint16_t c = memory.read(registers[Registers::R0]);
+					uint16_t c = memory->read(registers[Registers::R0]);
 
 					while (c) 
 					{
@@ -160,7 +161,7 @@ namespace lc3
 							std::cout << second;
 
 						++offset;
-						c = memory.read(registers[Registers::R0]);
+						c = memory->read(registers[Registers::R0]);
 					}
 
 					std::cout << std::flush;
@@ -226,7 +227,7 @@ namespace lc3
 
 				uint16_t addr = registers[Registers::PC] + signExtend(pcOffset, 9);
 
-				registers[dr] = memory.read(addr);
+				registers[dr] = memory->read(addr);
 				updateFlags(dr);
 			};
 
@@ -236,7 +237,7 @@ namespace lc3
 
 				uint16_t addr = registers[Registers::PC] + signExtend(pcOffset, 9);
 
-				registers[dr] = memory.read(memory.read(addr));
+				registers[dr] = memory->read(memory->read(addr));
 				updateFlags(dr);
 			};
 
@@ -247,7 +248,7 @@ namespace lc3
 
 				uint16_t addr = registers[br] + signExtend(offset, 6);
 
-				registers[dr] = memory.read(addr);
+				registers[dr] = memory->read(addr);
 				updateFlags(dr);
 			};
 
@@ -268,7 +269,7 @@ namespace lc3
 				uint16_t addr = registers[Registers::PC] + signExtend(pcOffset, 9);
 
 				uint16_t value = registers[sr];
-				memory.write(addr, value);
+				memory->write(addr, value);
 			};
 
 			handlers[Operations::STI] = [&](uint16_t instr) {
@@ -278,7 +279,7 @@ namespace lc3
 				uint16_t addr = registers[Registers::PC] + signExtend(pcOffset, 9);
 
 				uint16_t value = registers[sr];
-				memory.write(memory.read(addr), value);
+				memory->write(memory->read(addr), value);
 			};
 
 			handlers[Operations::STR] = [&](uint16_t instr) {
@@ -288,7 +289,7 @@ namespace lc3
 
 				uint16_t addr = registers[br] + signExtend(offset, 6);
 
-				memory.write(addr, registers[sr]);
+				memory->write(addr, registers[sr]);
 			};
 
 			handlers[Operations::BR] = [&](uint16_t instr) {
@@ -327,13 +328,17 @@ namespace lc3
 
 		void setup()
 		{
-			memory.write(0, 61475);
-			memory.write(1, 61475);
-			memory.write(2, 61477);
+			memory->write(0, 61475);
+			memory->write(1, 61475);
+			memory->write(2, 61477);
 
 			isRunning = true;
 		}
 	public:
+		LC3(std::unique_ptr<IMemory> mem)
+			: memory(std::move(mem)) {}
+
+
 		void run()
 		{
 			std::cout << "Initialization...\n";
@@ -344,7 +349,7 @@ namespace lc3
 
 			while (isRunning)
 			{
-				uint16_t instr = memory.read(registers[Registers::PC]++);
+				uint16_t instr = memory->read(registers[Registers::PC]++);
 				uint16_t op = instr >> 12;
 
 				auto key = handlers.find((Operations)op);
