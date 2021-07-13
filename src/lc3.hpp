@@ -286,10 +286,10 @@ namespace lc3
 		}
 
 
-		uint16_t signExtend(uint16_t x, int bit_count)
+		uint16_t signExtend(uint16_t x, int bitCount)
 		{
-			if ((x >> (bit_count - 1)) & 1)
-				x |= (0xFFFF << bit_count);
+			if ((x >> (bitCount - 1)) & 1)
+				x |= (0xffff << bitCount);
 			
 			return x;
 		}

@@ -14,8 +14,9 @@ std::vector<uint16_t> loadBinary(std::string filename)
 	std::ifstream input(filename, std::ios::binary);
 
 	std::vector<char> bytes(
-		 (std::istreambuf_iterator<char>(input)),
-		 (std::istreambuf_iterator<char>()));
+		std::istreambuf_iterator<char>(input),
+		(std::istreambuf_iterator<char>())
+		);
 	input.close();
 
 	std::vector<uint16_t> result(bytes.size() / 2);
