@@ -32,8 +32,8 @@ int main()
 {
 	auto program = loadBinary("../programms/programm.raw");
 
-	auto memory = std::make_unique<lc3::Memory>(program.data(), program.size());
-	auto io = std::make_unique<lc3::IODevice>();
+	auto memory = std::make_shared<lc3::Memory>(program.data(), program.size());
+	auto io = std::make_shared<lc3::IODevice>();
 
 	lc3::LC3 cpu(
 		std::move(memory),

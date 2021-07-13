@@ -73,8 +73,8 @@ namespace lc3
 	{
 	private:
 		uint16_t registers[Registers::Registers_Count];
-		std::unique_ptr<IMemory> memory;
-		std::unique_ptr<IIODevice> io;
+		std::shared_ptr<IMemory> memory;
+		std::shared_ptr<IIODevice> io;
 
 		bool isRunning = false;
 
@@ -308,7 +308,7 @@ namespace lc3
 			isRunning = true;
 		}
 	public:
-		LC3(std::unique_ptr<IMemory> mem, std::unique_ptr<IIODevice> ioDevice)
+		LC3(std::shared_ptr<IMemory> mem, std::shared_ptr<IIODevice> ioDevice)
 			: memory(std::move(mem)), io(std::move(ioDevice)) {}
 
 
