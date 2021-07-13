@@ -305,6 +305,7 @@ namespace lc3
 
 		void setup()
 		{
+			registers[Registers::PC] = 0x3000;
 			isRunning = true;
 		}
 	public:
