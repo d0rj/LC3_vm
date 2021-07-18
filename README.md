@@ -1,5 +1,7 @@
 # LC3 virtual machine
 
+[![CodeFactor](https://www.codefactor.io/repository/github/d0rj/lc3_vm/badge)](https://www.codefactor.io/repository/github/d0rj/lc3_vm)
+
 ## Overview
 
 This repository (will) contain implementation of LC3 virtual machine.
