@@ -39,7 +39,7 @@ int main(int argc, char** argv)
 	try {
 		program = loadBinary(argv[1]);
 	} 
-	catch(const std::ifstream::failure& e) {
+	catch(const std::ifstream::failure&) {
 		std::cout << "Error: exception while opening file with path : \'" << argv[1] << "\'.\n";
 		return 1;
 	}
