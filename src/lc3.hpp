@@ -310,7 +310,7 @@ namespace lc3
 		}
 	public:
 		LC3(std::shared_ptr<IMemory> mem, std::shared_ptr<IIODevice> ioDevice)
-			: memory(std::move(mem)), io(std::move(ioDevice)) {}
+			: memory(std::move(mem)), io(std::move(ioDevice)), registers() {}
 
 
 		void run()
