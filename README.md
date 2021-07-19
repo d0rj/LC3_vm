@@ -1,6 +1,7 @@
 # LC3 virtual machine
 
 [![CodeFactor](https://www.codefactor.io/repository/github/d0rj/lc3_vm/badge)](https://www.codefactor.io/repository/github/d0rj/lc3_vm)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/0e506941b2f1456b92fe1b53633770e2)](https://www.codacy.com/gh/d0rj/LC3_vm/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=d0rj/LC3_vm&amp;utm_campaign=Badge_Grade)
 
 ## Overview
 
