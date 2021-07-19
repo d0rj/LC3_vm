@@ -21,6 +21,10 @@ namespace lc3
 
 	public:
 		Memory() {}
+		Memory(const Memory& another)
+		{
+			std::copy(another.memory, another.memory + UINT16_MAX, memory);
+		}
 
 
 		Memory(uint16_t* initial, size_t N)
