@@ -228,7 +228,7 @@ namespace lc3
 							io->outputChar((char)c);
 
 							++offset;
-							c = memory->read(registers[Registers::R0] + offset);
+							c = memory->read(registers[Registers::R0] + (uint16_t)offset);
 						}
 
 						io->flush();
@@ -252,7 +252,7 @@ namespace lc3
 								io->outputChar(second);
 
 							++offset;
-							c = memory->read(registers[Registers::R0]);
+							c = memory->read(registers[Registers::R0] + (uint16_t)offset);
 						}
 
 						io->flush();
@@ -310,7 +310,7 @@ namespace lc3
 		}
 	public:
 		LC3(std::shared_ptr<IMemory> mem, std::shared_ptr<IIODevice> ioDevice)
-			: memory(std::move(mem)), io(std::move(ioDevice)) {}
+			: memory(std::move(mem)), io(std::move(ioDevice)), registers() {}
 
 
 		void run()
