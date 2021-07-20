@@ -216,7 +216,7 @@ namespace lc3
 						registers[Registers::R0] = (uint16_t)input;
 					}},
 					{Trapcodes::OUT, [&]() {
-						io->outputChar(registers[Registers::R0]);
+						io->outputChar((char)registers[Registers::R0]);
 						io->flush();
 					}},
 					{Trapcodes::PUTS, [&]() {
@@ -225,7 +225,7 @@ namespace lc3
 
 						while (c) 
 						{
-							io->outputChar(c);
+							io->outputChar((char)c);
 
 							++offset;
 							c = memory->read(registers[Registers::R0] + offset);
