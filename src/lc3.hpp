@@ -258,7 +258,7 @@ namespace lc3
 						io->flush();
 					}},
 					{Trapcodes::HALT, [&]() {
-						io->outputChars("Stopped.\n");
+						io->outputChars("\n### Stopped.\n");
 						isRunning = false;
 					}}
 				};
@@ -297,7 +297,7 @@ namespace lc3
 
 		void error(std::string message) 
 		{
-			io->errorOutputChars(std::format("Error: {}\n", message));
+			io->errorOutputChars(std::format("### Error: {}\n", message));
 			isRunning = false;
 			abort();
 		}
@@ -315,9 +315,9 @@ namespace lc3
 
 		void run()
 		{
-			io->outputChars("Setup...\n");
+			io->outputChars("### Setup...\n");
 			setup();
-			io->outputChars("Done.\nRunning.\n");
+			io->outputChars("### Done.\n### Running.\n");
 
 			while (isRunning) {
 				uint16_t instr = memory->read(registers[Registers::PC]++);
